@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speech to Text</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: hsl(0, 0%, 96%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: #333;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 90%;
+            max-width: 700px;
+        }
+        h1 {
+            color: #fff;
+            margin-bottom: 30px;
+            font-size: 24px;
+        }
+        .remote-control {
+            background: #333;
+            padding: 20px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .button {
+            background: #007bff;
+            color: #fff;
+            border: none;
+            padding: 20px;
+            margin: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background 0.3s;
+            font-size: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .button:hover {
+            background: #0056b3;
+        }
+        #start {
+            background-color: #dc3545;
+        }
+        #stop {
+            background-color: #28a745;
+        }
+        textarea {
+            width: calc(100% - 60px);
+            height: 200px;
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #333;
+            border-radius: 5px;
+            font-size: 18px;
+            resize: none;
+            background-color: #000;
+            color: #fff;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Audio Recording</h1>
+        <div class="remote-control">
+            <button id="start" class="button"><i class="fas fa-microphone"></i></button>
+            <button id="stop" class="button"><i class="fas fa-microphone-slash"></i></button>
+        </div>
+        <textarea id="result" placeholder="The recognized text will appear here..."></textarea>
+        <button id="save" class="button">Save</button>
+    </div>
+
+    <script>
+        const startButton = document.getElementById('start');
+        const stopButton = document.getElementById('stop');
+        const resultTextarea = document.getElementById('result');
+        const saveButton = document.getElementById('save');
+
+        let recognition;
+        if ('webkitSpeechRecognition' in window) {
+            recognition = new webkitSpeechRecognition();
+        } else if ('SpeechRecognition' in window) {
+            recognition = new SpeechRecognition();
+        } else {
+            alert("Your browser does not support speech recognition. Try using Chrome or Firefox.");
+        }
+
+        if (recognition) {
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                let finalTranscript = '';
+                for (let i = 0; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript;
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+                resultTextarea.value = finalTranscript || interimTranscript;
+            };
+
+            recognition.onerror = (event) => {
+                console.error("Speech recognition error detected: " + event.error);
+            };
+
+            startButton.onclick = () => {
+                recognition.start();
+            };
+
+            stopButton.onclick = () => {
+                recognition.stop();
+            };
+        }
+
+        saveButton.onclick = () => {
+            const text = resultTextarea.value;
+            const xhr = new XMLHttpRequest();
+            xhr.open("POST", "save_speech.php", true);
+            xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+            xhr.onreadystatechange = () => {
+                if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
+                    alert("Text saved to database");
+                }
+            };
+            xhr.send("text=" + encodeURIComponent(text));
+        };
+    </script>
+</body>
+</html>
